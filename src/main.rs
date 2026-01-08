@@ -1,8 +1,15 @@
 mod cpu;
+mod emulator;
+mod mmu;
 
-use cpu::CPU;
+use emulator::Emulator;
 
 fn main() {
-    let cpu = CPU::new();
-    cpu.debug_print();
+    let mut emu = Emulator::new();
+
+    // Halt Bug Present on Gameboy CPU
+    emu.set_halt_bug();
+
+    // Start Executing
+    emu.start();
 }
