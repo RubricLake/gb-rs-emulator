@@ -1,42 +1,5 @@
-pub struct CPU {
-    pub reg: Registers,
-    running: bool,
-}
+use crate::mmu::MMU;
 
-impl CPU {
-    pub fn new() -> Self {
-        CPU {
-            reg: Default::default(),
-            running: false,
-        }
-    }
-
-    pub fn debug_print(&self) {
-        let reg = &self.reg;
-        let flags = &self.reg.f;
-
-        println!("{:-^25}", "START");
-        print!("REGISTERS:\n");
-        print!("a: {:X}\n", reg.a);
-        print!("b: {:X}\n", reg.b);
-        print!("c: {:X}\n", reg.c);
-        print!("d: {:X}\n", reg.d);
-        print!("e: {:X}\n", reg.e);
-        print!("h: {:X}\n", reg.h);
-        print!("l: {:X}\n\n", reg.l);
-
-        print!("POINTERS:\n");
-        print!("sp: {:X}\n", reg.sp);
-        print!("pc: {:X}\n\n", reg.pc);
-
-        print!("FLAGS:\n");
-        print!("z: {:}\n", flags.z.get() as u8);
-        print!("n: {:}\n", flags.n.get() as u8);
-        print!("h: {:}\n", flags.h.get() as u8);
-        print!("c: {:}\n\n", flags.c.get() as u8);
-        println!("{:-^25}", "END");
-    }
-}
 #[derive(Default)]
 struct Registers {
     pub a: u8,
@@ -53,38 +16,158 @@ struct Registers {
     f: Flags,
 }
 
+impl Registers {
+    pub fn af(&self) -> u16 {
+        ((self.a as u16) << 8) | self.f.as_u8() as u16
+    }
+
+    pub fn set_af(&mut self, value: u16) {
+        self.a = (value >> 8) as u8;
+        self.f.load_u8(value as u8);
+    }
+
+    pub fn bc(&self) -> u16 {
+        ((self.b as u16) << 8) | self.c as u16
+    }
+
+    pub fn set_bc(&mut self, value: u16) {
+        self.b = (value >> 8) as u8;
+        self.c = value as u8;
+    }
+
+    pub fn de(&self) -> u16 {
+        ((self.d as u16) << 8) | self.e as u16
+    }
+
+    pub fn set_de(&mut self, value: u16) {
+        self.d = (value >> 8) as u8;
+        self.e = value as u8;
+    }
+
+    pub fn hl(&self) -> u16 {
+        ((self.h as u16) << 8) | self.l as u16
+    }
+
+    pub fn set_hl(&mut self, value: u16) {
+        self.h = (value >> 8) as u8;
+        self.l = value as u8;
+    }
+}
+
 #[derive(Default)]
 struct Flags {
-    z: Flag,
-    n: Flag,
-    h: Flag,
-    c: Flag,
+    f: u8,
 }
 
-#[derive(Default)]
-struct Flag {
-    value: bool,
+impl Flags {
+    const Z: u8 = 0b1000_0000;
+    const N: u8 = 0b0100_0000;
+    const H: u8 = 0b0010_0000;
+    const C: u8 = 0b0001_0000;
+
+    pub fn z(&self) -> bool {
+        self.f & Self::Z != 0
+    }
+
+    pub fn n(&self) -> bool {
+        self.f & Self::N != 0
+    }
+
+    pub fn h(&self) -> bool {
+        self.f & Self::H != 0
+    }
+
+    pub fn c(&self) -> bool {
+        self.f & Self::C != 0
+    }
+
+    pub fn set_z(&mut self, value: bool) {
+        self.set(Self::Z, value);
+    }
+    pub fn set_n(&mut self, value: bool) {
+        self.set(Self::N, value);
+    }
+    pub fn set_h(&mut self, value: bool) {
+        self.set(Self::H, value);
+    }
+    pub fn set_c(&mut self, value: bool) {
+        self.set(Self::C, value);
+    }
+
+    fn set(&mut self, mask: u8, value: bool) {
+        if value {
+            self.f |= mask;
+        } else {
+            self.f &= !mask;
+        }
+
+        self.f &= 0xF0;
+    }
+
+    pub fn as_u8(&self) -> u8 {
+        self.f & 0xF0
+    }
+
+    pub fn load_u8(&mut self, value: u8) {
+        self.f = value & 0xF0;
+    }
+    pub fn clear(&mut self) {
+        self.f = 0;
+    }
+}
+pub struct CPU {
+    pub reg: Registers,
+    pub ime: bool,
+    pub halt: bool,
+    pub halt_bug: bool,
 }
 
-impl Flag {
-    fn get(&self) -> bool {
-        self.value
+impl CPU {
+    pub fn new() -> Self {
+        CPU {
+            reg: Default::default(),
+            ime: false,
+            halt: false,
+            halt_bug: false,
+        }
     }
 
-    fn set(&mut self) {
-        self.value = true;
+    pub fn step(&mut self, mmu: &mut MMU) -> u32 {
+        if self.halt {
+            return 4;
+        }
+
+        // Step Through Instruction
+        self.debug_print();
+
+        // Return Cycles it Took
+        0
     }
 
-    fn unset(&mut self) {
-        self.value = false;
-    }
+    pub fn debug_print(&self) {
+        let reg = &self.reg;
+        let flags = &self.reg.f;
 
-    fn toggle(&mut self) {
-        self.value = !self.value;
-    }
+        println!("{:-^25}", "START");
+        print!("REGISTERS:\n");
+        print!("a: {:02X}\n", reg.a);
+        print!("b: {:02X}\n", reg.b);
+        print!("c: {:02X}\n", reg.c);
+        print!("d: {:02X}\n", reg.d);
+        print!("e: {:02X}\n", reg.e);
+        print!("h: {:02X}\n", reg.h);
+        print!("l: {:02X}\n\n", reg.l);
 
-    fn set_if(&mut self, cond: bool) {
-        self.value = cond;
+        print!("POINTERS:\n");
+        print!("sp: {:04X}\n", reg.sp);
+        print!("pc: {:04X}\n\n", reg.pc);
+
+        print!("FLAGS:\n");
+        print!("z: {:}\n", flags.z() as u8);
+        print!("n: {:}\n", flags.n() as u8);
+        print!("h: {:}\n", flags.h() as u8);
+        print!("c: {:}\n", flags.c() as u8);
+        println!("{:-^25}", "END");
     }
 }
 
