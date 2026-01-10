@@ -1,5 +1,6 @@
 use crate::cpu::CPU;
 use crate::mmu::MMU;
+use std::path::PathBuf;
 
 pub struct Emulator {
     cpu: CPU,
@@ -18,6 +19,10 @@ impl Emulator {
             running: false,
             paused: false,
         }
+    }
+
+    pub fn load_cartridge(&mut self, cartridge_path: PathBuf) {
+        self.mmu.read_from_file(cartridge_path);
     }
 
     pub fn set_halt_bug(&mut self) {
