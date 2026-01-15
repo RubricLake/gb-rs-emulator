@@ -1,4 +1,5 @@
 use crate::mmu::MMU;
+use crate::{log_print, log_println};
 
 #[derive(Default)]
 struct Registers {
@@ -148,26 +149,26 @@ impl CPU {
         let reg = &self.reg;
         let flags = &self.reg.f;
 
-        println!("{:-^25}", "START");
-        print!("REGISTERS:\n");
-        print!("a: {:02X}\n", reg.a);
-        print!("b: {:02X}\n", reg.b);
-        print!("c: {:02X}\n", reg.c);
-        print!("d: {:02X}\n", reg.d);
-        print!("e: {:02X}\n", reg.e);
-        print!("h: {:02X}\n", reg.h);
-        print!("l: {:02X}\n\n", reg.l);
+        log_println!("{:-^25}", "START");
+        log_print!("REGISTERS:\n");
+        log_print!("a: {:02X}\n", reg.a);
+        log_print!("b: {:02X}\n", reg.b);
+        log_print!("c: {:02X}\n", reg.c);
+        log_print!("d: {:02X}\n", reg.d);
+        log_print!("e: {:02X}\n", reg.e);
+        log_print!("h: {:02X}\n", reg.h);
+        log_print!("l: {:02X}\n\n", reg.l);
 
-        print!("POINTERS:\n");
-        print!("sp: {:04X}\n", reg.sp);
-        print!("pc: {:04X}\n\n", reg.pc);
+        log_print!("POINTERS:\n");
+        log_print!("sp: {:04X}\n", reg.sp);
+        log_print!("pc: {:04X}\n\n", reg.pc);
 
-        print!("FLAGS:\n");
-        print!("z: {:}\n", flags.z() as u8);
-        print!("n: {:}\n", flags.n() as u8);
-        print!("h: {:}\n", flags.h() as u8);
-        print!("c: {:}\n", flags.c() as u8);
-        println!("{:-^25}", "END");
+        log_print!("FLAGS:\n");
+        log_print!("z: {:}\n", flags.z() as u8);
+        log_print!("n: {:}\n", flags.n() as u8);
+        log_print!("h: {:}\n", flags.h() as u8);
+        log_print!("c: {:}\n", flags.c() as u8);
+        log_println!("{:-^25}", "END");
     }
 }
 

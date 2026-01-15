@@ -1,28 +1,13 @@
-use crate::cartridge::Cartridge;
 use crate::cpu::CPU;
 use crate::mmu::MMU;
+use crate::{log_print, log_println};
 use std::io;
-use std::path::{Path};
-
-#[macro_export]
-macro_rules! log_println {
-    () => (println!("[GAMEBOY]"));
-    ($fmt:expr, $($arg:tt)*) => (println!(concat!("[GAMEBOY] ", $fmt), $($arg)*));
-    ($fmt:expr) => (println!(concat!("[GAMEBOY] ", $fmt)));
-}
-
-#[macro_export]
-macro_rules! log_print {
-    () => (print!("[GAMEBOY]"));
-    ($fmt:expr, $($arg:tt)*) => (print!(concat!("[GAMEBOY] ", $fmt), $($arg)*));
-    ($fmt:expr) => (print!(concat!("[GAMEBOY] ", $fmt)));
-}
+use std::path::Path;
 
 pub struct Emulator {
     cpu: CPU,
     mmu: MMU,
     // ppu: PPU,
-    // cart: Cartridge,
     running: bool,
     paused: bool,
 }
