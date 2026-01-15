@@ -139,7 +139,7 @@ impl CPU {
         }
 
         // Step Through Instruction
-        self.debug_print();
+        // self.debug_print();
 
         // Return Cycles it Took
         0

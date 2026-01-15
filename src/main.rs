@@ -2,6 +2,7 @@ mod cartridge;
 mod cpu;
 mod emulator;
 mod macros;
+mod mappers;
 mod mmu;
 
 use emulator::Emulator;
