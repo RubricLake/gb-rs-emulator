@@ -1,7 +1,7 @@
 use crate::cartridge::Cartridge;
 
 pub struct MMU {
-    pub cart: Cartridge,
+    pub cart: Option<Cartridge>,
     boot_rom: Vec<u8>,
     boot_active: bool,
     vram: [u8; 0x2000], // 8 KB  [8000 - 9FFF]
@@ -16,7 +16,7 @@ pub struct MMU {
 impl MMU {
     pub fn new() -> Self {
         Self {
-            cart: Cartridge::new(),
+            cart: None,
             boot_rom: vec![],
             boot_active: true,
             vram: [0; 0x2000],
@@ -31,13 +31,33 @@ impl MMU {
     pub fn set_boot_rom(&mut self, boot_rom: Vec<u8>) {
         self.boot_rom = boot_rom;
     }
+    pub fn insert_cartridge(&mut self, cartridge: Cartridge) {
+        self.cart = Some(cartridge);
+    }
+
+    fn cart_read(&self, addr: u16) -> u8 {
+        self.cart.as_ref().
+            map(|c| c.read(addr))
+            .unwrap_or(0xFF)
+    }
+
+    fn cart_write(&mut self, addr: u16, value: u8) {
+        if let Some(cart) = self.cart.as_mut() {
+            cart.write(addr, value);
+        }
+    }
 
     #[allow(unreachable_patterns)]
     pub fn read_u8(&self, addr: u16) -> u8 {
         match addr {
+            // Boot ROM
+            // Only Read as long as it's active
+            0x0000..=0x00FF if self.boot_active => self.boot_rom[addr as usize],
+
             // 16 KiB ROM BANK 00
             // From cartridge, usually a fixed bank
-            0..=0x7FFF => self.cart.read_rom(addr), // Let mapper handle it
+            // Let mapper handle it
+            0x0000..=0x7FFF => self.cart_read(addr), // Let mapper handle it
 
             // 16 KiB ROM BANK 01-NN
             // From cartridge, switchable bank via mapper (if any)
@@ -49,7 +69,8 @@ impl MMU {
 
             // 8 KiB External RAM
             // From cartridge, switchable bank if any
-            0xA000..=0xBFFF => self.cart.read_ram(addr), // Let mapper handle it
+            // Let mapper handle it
+            0xA000..=0xBFFF => self.cart_read(addr),
 
             // 4 KiB Work RAM (WRAM)
             0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize],

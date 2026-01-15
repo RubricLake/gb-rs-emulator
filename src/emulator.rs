@@ -1,3 +1,4 @@
+use crate::cartridge::Cartridge;
 use crate::cpu::CPU;
 use crate::log_println;
 use crate::mmu::MMU;
@@ -33,9 +34,11 @@ impl Emulator {
 
     pub fn insert_cartridge(&mut self, cartridge_path: &Path) -> io::Result<()> {
         log_println!("Reading cartridge from {:?}", cartridge_path);
-        let data = std::fs::read(cartridge_path)?;
+        let rom = std::fs::read(cartridge_path)?;
 
-        self.mmu.cart.set_cart_rom(data);
+        let cartridge = Cartridge::new(rom);
+
+        self.mmu.insert_cartridge(cartridge);
 
         Ok(())
     }
