@@ -1,6 +1,6 @@
 use crate::cpu::CPU;
+use crate::log_println;
 use crate::mmu::MMU;
-use crate::{log_print, log_println};
 use std::io;
 use std::path::Path;
 
@@ -13,8 +13,8 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new() -> Emulator {
-        Emulator {
+    pub fn new() -> Self {
+        Self {
             cpu: CPU::new(),
             mmu: MMU::new(),
             running: false,
