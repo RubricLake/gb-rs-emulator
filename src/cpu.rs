@@ -133,7 +133,7 @@ impl CPU {
         }
     }
 
-    pub fn step(&mut self, mmu: &mut MMU) -> u32 {
+    pub fn step(&mut self, mmu: &mut MMU) -> u64 {
         if self.halt {
             return 4;
         }
