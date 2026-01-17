@@ -27,5 +27,5 @@ impl Mapper for MBC0 {
 
     // Intentionally Left Blank
     // No Action on Rom Writes
-    fn write_rom(&mut self, addr: u16, value: u8) {}
+    fn write_control(&mut self, addr: u16, value: u8) {}
 }
