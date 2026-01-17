@@ -5,6 +5,10 @@ use crate::mmu::MMU;
 use std::io;
 use std::path::Path;
 
+const CPU_HZ: u64 = 4_194_304;
+const NS_PER_SEC: u64 = 1_000_000_000;
+const NS_PER_CYCLE: u64 = NS_PER_SEC / CPU_HZ;
+
 pub struct Emulator {
     cpu: CPU,
     mmu: MMU,
@@ -50,16 +54,41 @@ impl Emulator {
     pub fn start(&mut self) {
         self.running = true;
 
+        let mut cycles_accumulated: u64 = 0;
+        let mut last_sync = std::time::Instant::now();
+
         while self.running {
-            if !self.paused {
-                // Tick CPU
-                let cycles = self.cpu.step(&mut self.mmu);
-                self.running = false;
-
-                // Handle Timers
-
-                // Handle Interrupts
+            if self.paused {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                continue;
             }
+
+            // Tick CPU
+            let cycles: u64 = self.cpu.step(&mut self.mmu);
+            cycles_accumulated += cycles;
+
+            // Handle Timers
+            // self.timers.tick(cycles);
+
+            // Handle ppu
+            // self.ppu.tick(cycles);
+
+            // Handle Interrupts
+            // self.handle_interrupts();
+
+            // Sync Time
+            let elapsed = last_sync.elapsed();
+            let emulated_ns = (cycles_accumulated * NS_PER_CYCLE) as u128;
+
+            if elapsed.as_nanos() < emulated_ns {
+                let sleep_ns = emulated_ns - elapsed.as_nanos();
+                std::thread::sleep(std::time::Duration::from_nanos(sleep_ns as u64));
+            } else {
+                // Emulator needs to catch up
+            }
+
+            last_sync = std::time::Instant::now();
+            cycles_accumulated = 0;
         }
     }
 }
