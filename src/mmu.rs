@@ -1,4 +1,5 @@
 use crate::cartridge::Cartridge;
+use crate::log_println;
 
 pub struct MMU {
     pub cart: Option<Cartridge>,
@@ -59,10 +60,6 @@ impl MMU {
             // Let mapper handle it
             0x0000..=0x7FFF => self.cart_read(addr), // Let mapper handle it
 
-            // 16 KiB ROM BANK 01-NN
-            // From cartridge, switchable bank via mapper (if any)
-            // 0x4000..=0x7FFF => self.cart.read_rom(addr),
-
             // 8 KiB Video RAM (VRAM)
             // In CGB Mode, Switchable Bank 0/1
             0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize],
@@ -103,7 +100,52 @@ impl MMU {
         }
     }
 
-    pub fn write_u8(&mut self, addr: u16, value: u8) {}
+    pub fn write_u8(&mut self, addr: u16, value: u8) {
+        match addr {
+            // 16 KiB ROM BANK 00
+            // From cartridge, usually a fixed bank
+            // Let mapper handle it
+            0x0000..=0x7FFF => self.cart_write(addr, value), // Let mapper handle it
+
+            // 8 KiB Video RAM (VRAM)
+            // In CGB Mode, Switchable Bank 0/1
+            0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize] = value,
+
+            // 8 KiB External RAM
+            // From cartridge, switchable bank if any
+            // Let mapper handle it
+            0xA000..=0xBFFF => self.cart_write(addr, value),
+
+            // 4 KiB Work RAM (WRAM)
+            0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize] = value,
+
+            // 4 Kib Work RAM (WRAM)
+            // In CGB Mode, Switchable Bank 1-7
+            // 0xD000..=0xDFFF => self.wram[(addr - 0xC000) as usize],
+
+            // Echo RAM (Mirror of C000-DDFF)
+            // Nintendo says use of this area is prohibited
+            0xE000..=0xFDFF => self.write_u8(addr - 0x2000, value),
+
+            // Object Attribute Memory
+            0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize] = value,
+
+            // Not Usable
+            // Nintendo says use of this area is prohibited
+            0xFEA0..=0xFEFF => log_println!("Attempted Write at [{:#04X}] with {:#04X}", addr, value),
+
+            // IO Registers
+            0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize] = value,
+
+            // High RAM (HRAM)
+            0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize] = value,
+
+            // Interrupt Enable Register (IE)
+            0xFFFF => self.ie = value,
+
+            _ => unreachable!(),
+        }
+    }
 
     pub fn read_u16(&self, addr: u16) -> u16 {
         let low: u8 = self.read_u8(addr);
