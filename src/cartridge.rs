@@ -11,7 +11,7 @@ impl Cartridge {
         let cart_type = rom[0x147];
         let ram_code = rom[0x149];
 
-        let ram_size = Self::decode_ram_size(ram_code);
+        let ram_size = Self::decode_ram_size(ram_code) * 0x400;
         let has_ram = ram_size > 0;
         let ram = vec![0; ram_size];
 
@@ -25,18 +25,24 @@ impl Cartridge {
 
     fn decode_ram_size(ram_code: u8) -> usize {
         match ram_code {
-            0x00 => 0,
-            0x01 => 1,
-            0x02 => 2,
-            0x03 => 3,
-            0x04 => 4,
-            0x05 => 5,
+            0x00 => 0,      // No RAM
+            0x01 => 2,      // Listed as 2 KiB in various unofficial docs; unused.
+            0x02 => 8,      // 1 Bank
+            0x03 => 32,     // 4 Banks of 8 KiB each
+            0x04 => 128,    // 16 Banks of 8 KiB each
+            0x05 => 64,     // 8 Banks of 8 Kib each
             _ => panic!("Invalid RAM code from cartridge byte {:#04x}", ram_code),
         }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
-        unimplemented!();
+        let ram_addr = self.mapper.map_ram(addr);
+
+        if let Some(addr) = ram_addr {
+            self.ram[addr] = value;
+        } else if addr <= 0x7FFF {
+            self.mapper.write_control(addr, value);
+        }
     }
 
     pub fn read(&self, addr: u16) -> u8 {
